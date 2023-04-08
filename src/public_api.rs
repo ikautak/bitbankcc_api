@@ -30,6 +30,40 @@ impl Into<TickerResponse> for ureq::serde_json::Value {
 }
 
 #[derive(Debug)]
+pub struct DepthResponse {
+    pub asks: Vec<(f64, f64)>,
+    pub bids: Vec<(f64, f64)>,
+}
+
+impl Into<DepthResponse> for ureq::serde_json::Value {
+    fn into(self) -> DepthResponse {
+        let asks_array = self["asks"].as_array().unwrap();
+        let mut asks: Vec<(f64, f64)> = Vec::with_capacity(asks_array.len());
+
+        for e in asks_array {
+            let e = e.as_array().unwrap();
+            assert!(e.len() == 2);
+            let price = e[0].as_str().unwrap().parse::<f64>().unwrap();
+            let amount = e[1].as_str().unwrap().parse::<f64>().unwrap();
+            asks.push((price, amount));
+        }
+
+        let bids_array = self["bids"].as_array().unwrap();
+        let mut bids: Vec<(f64, f64)> = Vec::with_capacity(bids_array.len());
+
+        for e in bids_array {
+            let e = e.as_array().unwrap();
+            assert!(e.len() == 2);
+            let price = e[0].as_str().unwrap().parse::<f64>().unwrap();
+            let amount = e[1].as_str().unwrap().parse::<f64>().unwrap();
+            bids.push((price, amount));
+        }
+
+        DepthResponse { asks, bids }
+    }
+}
+
+#[derive(Debug)]
 pub struct PublicApi {
     end_point: String,
     agent: ureq::Agent,
@@ -47,6 +81,19 @@ impl PublicApi {
     pub fn get_ticker(self, pair: &str) -> Result<TickerResponse> {
         let path = format!("{}/{}/ticker", self.end_point, pair);
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
+        //println!("{:?}", json);
+
+        if json["success"].as_i64().unwrap() != 1 {
+            return Err(anyhow!("api error {}", json["data"]["code"]));
+        }
+
+        Ok(json["data"].to_owned().into())
+    }
+
+    pub fn get_depth(self, pair: &str) -> Result<DepthResponse> {
+        let path = format!("{}/{}/depth", self.end_point, pair);
+        let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
+        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));
@@ -57,7 +104,6 @@ impl PublicApi {
 
     //pub fn get_tickers(self, ) ->
     //pub fn get_tickers_jpy(self, ) ->
-    //pub fn get_depth(self, ) ->
     //pub fn get_transactions(self, ) ->
     //pub fn get_candlestick(self, ) ->
 }

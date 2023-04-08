@@ -24,8 +24,12 @@ fn main() {
     //let pri_end_point = "https://api.bitbank.cc/v1";
 
     let pub_api = PublicApi::new(pub_end_point.to_string());
-    let ticker = pub_api.get_ticker("btc_jpy").unwrap();
-    println!("{:?}", ticker);
+
+    //let ticker = pub_api.get_ticker("btc_jpy").unwrap();
+    //println!("{:?}", ticker);
+
+    let depth = pub_api.get_depth("btc_jpy").unwrap();
+    println!("{:?}", depth);
 
     //let pri_api = PrivateApi::new(pri_end_point.to_string(), api_key, api_secret);
     //pri_api.order_type_market("btc_jpy", 0.0001, OrderSide::Buy);
