@@ -24,18 +24,8 @@ fn main() {
     //let pri_end_point = "https://api.bitbank.cc/v1";
 
     let pub_api = PublicApi::new(pub_end_point.to_string());
-    let json = pub_api.get_ticker("btc_jpy").unwrap();
-    let btc_str = json["data"]["buy"].as_str().unwrap();
-    let btc_jpy = btc_str.parse::<u64>().unwrap();
-    println!("btc_jpy {}", btc_jpy);
-    let mut amount: f64 = 3000.0 / (btc_jpy as f64);
-    amount = amount * 10000.0;
-    amount = amount.floor() / 10000.0;
-    println!("amount {}", amount);
-    if amount < 0.0001 {
-        println!("no enough jpn");
-        return;
-    }
+    let ticker = pub_api.get_ticker("btc_jpy").unwrap();
+    println!("{:?}", ticker);
 
     //let pri_api = PrivateApi::new(pri_end_point.to_string(), api_key, api_secret);
     //pri_api.order_type_market("btc_jpy", 0.0001, OrderSide::Buy);
