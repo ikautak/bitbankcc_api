@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use std::time::Duration;
 use ureq;
 
-use crate::common::OrderSide;
+use crate::common::{CandleType, OrderSide};
 
 #[derive(Debug)]
 pub struct TickerInfo {
@@ -111,6 +111,52 @@ impl Into<Transactions> for ureq::serde_json::Value {
 }
 
 #[derive(Debug)]
+pub struct CandleStick {
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: f64,
+    pub timestamp: u64,
+}
+
+impl Into<CandleStick> for ureq::serde_json::Value {
+    fn into(self) -> CandleStick {
+        let ohlcv = self.as_array().unwrap();
+        assert!(ohlcv.len() == 6);
+
+        CandleStick {
+            open: ohlcv[0].as_str().unwrap().parse::<f64>().unwrap(),
+            high: ohlcv[1].as_str().unwrap().parse::<f64>().unwrap(),
+            low: ohlcv[2].as_str().unwrap().parse::<f64>().unwrap(),
+            close: ohlcv[3].as_str().unwrap().parse::<f64>().unwrap(),
+            volume: ohlcv[4].as_str().unwrap().parse::<f64>().unwrap(),
+            timestamp: ohlcv[5].as_u64().unwrap(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CandleStickInfo {
+    ohlcv: Vec<CandleStick>,
+}
+
+impl Into<CandleStickInfo> for ureq::serde_json::Value {
+    fn into(self) -> CandleStickInfo {
+        let candle_stick = self.as_array().unwrap();
+        assert!(candle_stick.len() > 0);
+        let ohlcv_array = candle_stick[0]["ohlcv"].as_array().unwrap();
+        let mut out: Vec<CandleStick> = Vec::with_capacity(ohlcv_array.len());
+
+        for e in ohlcv_array {
+            out.push(e.to_owned().into());
+        }
+
+        CandleStickInfo { ohlcv: out }
+    }
+}
+
+#[derive(Debug)]
 pub struct PublicApi {
     end_point: String,
     agent: ureq::Agent,
@@ -137,6 +183,9 @@ impl PublicApi {
         Ok(json["data"].to_owned().into())
     }
 
+    //pub fn get_tickers(self, ) ->
+    //pub fn get_tickers_jpy(self, ) ->
+
     pub fn get_depth(self, pair: &str) -> Result<DepthInfo> {
         let path = format!("{}/{}/depth", self.end_point, pair);
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
@@ -156,7 +205,7 @@ impl PublicApi {
         }
 
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
-        println!("{:?}", json);
+        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));
@@ -165,7 +214,40 @@ impl PublicApi {
         Ok(json["data"].to_owned().into())
     }
 
-    //pub fn get_tickers(self, ) ->
-    //pub fn get_tickers_jpy(self, ) ->
-    //pub fn get_candlestick(self, ) ->
+    pub fn get_candlestick(
+        self,
+        pair: &str,
+        candle_type: CandleType,
+        yyyy: &str,
+    ) -> Result<CandleStickInfo> {
+        match candle_type {
+            CandleType::_1min
+            | CandleType::_5min
+            | CandleType::_15min
+            | CandleType::_30min
+            | CandleType::_1hour => {
+                // YYYYMMDD
+                assert!(yyyy.len() == 8)
+            }
+            // YYYY
+            _ => assert!(yyyy.len() == 4),
+        }
+
+        let path = format!(
+            "{}/{}/candlestick/{}/{}",
+            self.end_point, pair, candle_type, yyyy
+        );
+        println!("{}", path);
+
+        //let json = self.agent.get(&path).call()?.into_json()?;
+        let json: ureq::serde_json::Value =
+            self.agent.get(&path).call().unwrap().into_json().unwrap();
+        println!("{:?}", json);
+
+        if json["success"].as_i64().unwrap() != 1 {
+            return Err(anyhow!("api error {}", json["data"]["code"]));
+        }
+
+        Ok(json["data"]["candlestick"].to_owned().into())
+    }
 }
