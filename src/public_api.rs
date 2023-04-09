@@ -2,8 +2,10 @@ use anyhow::{anyhow, Result};
 use std::time::Duration;
 use ureq;
 
+use crate::common::OrderSide;
+
 #[derive(Debug)]
-pub struct TickerResponse {
+pub struct TickerInfo {
     pub sell: f64,
     pub buy: f64,
     pub high: f64,
@@ -14,9 +16,9 @@ pub struct TickerResponse {
     pub timestamp: u64,
 }
 
-impl Into<TickerResponse> for ureq::serde_json::Value {
-    fn into(self) -> TickerResponse {
-        TickerResponse {
+impl Into<TickerInfo> for ureq::serde_json::Value {
+    fn into(self) -> TickerInfo {
+        TickerInfo {
             sell: (self["sell"].as_str().unwrap().parse::<f64>().unwrap()),
             buy: (self["buy"].as_str().unwrap().parse::<f64>().unwrap()),
             high: (self["high"].as_str().unwrap().parse::<f64>().unwrap()),
@@ -30,13 +32,13 @@ impl Into<TickerResponse> for ureq::serde_json::Value {
 }
 
 #[derive(Debug)]
-pub struct DepthResponse {
+pub struct DepthInfo {
     pub asks: Vec<(f64, f64)>,
     pub bids: Vec<(f64, f64)>,
 }
 
-impl Into<DepthResponse> for ureq::serde_json::Value {
-    fn into(self) -> DepthResponse {
+impl Into<DepthInfo> for ureq::serde_json::Value {
+    fn into(self) -> DepthInfo {
         let asks_array = self["asks"].as_array().unwrap();
         let mut asks: Vec<(f64, f64)> = Vec::with_capacity(asks_array.len());
 
@@ -59,7 +61,52 @@ impl Into<DepthResponse> for ureq::serde_json::Value {
             bids.push((price, amount));
         }
 
-        DepthResponse { asks, bids }
+        DepthInfo { asks, bids }
+    }
+}
+
+#[derive(Debug)]
+pub struct TransactionInfo {
+    pub transaction_id: u64,
+    pub side: OrderSide,
+    pub price: f64,
+    pub amount: f64,
+    pub executed_at: u64,
+}
+
+impl Into<TransactionInfo> for ureq::serde_json::Value {
+    fn into(self) -> TransactionInfo {
+        let side = match self["side"].as_str().unwrap() {
+            "buy" => OrderSide::Buy,
+            "sell" => OrderSide::Sell,
+            _ => panic!("invalid side {}", self["side"]),
+        };
+
+        TransactionInfo {
+            transaction_id: self["transaction_id"].as_u64().unwrap(),
+            side,
+            price: self["price"].as_str().unwrap().parse::<f64>().unwrap(),
+            amount: self["amount"].as_str().unwrap().parse::<f64>().unwrap(),
+            executed_at: self["executed_at"].as_u64().unwrap(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Transactions {
+    pub data: Vec<TransactionInfo>,
+}
+
+impl Into<Transactions> for ureq::serde_json::Value {
+    fn into(self) -> Transactions {
+        let tx_array = self["transactions"].as_array().unwrap();
+        let mut tx: Vec<TransactionInfo> = Vec::with_capacity(tx_array.len());
+
+        for e in tx_array {
+            tx.push(e.to_owned().into());
+        }
+
+        Transactions { data: tx }
     }
 }
 
@@ -78,7 +125,7 @@ impl PublicApi {
         Self { end_point, agent }
     }
 
-    pub fn get_ticker(self, pair: &str) -> Result<TickerResponse> {
+    pub fn get_ticker(self, pair: &str) -> Result<TickerInfo> {
         let path = format!("{}/{}/ticker", self.end_point, pair);
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
         //println!("{:?}", json);
@@ -90,7 +137,7 @@ impl PublicApi {
         Ok(json["data"].to_owned().into())
     }
 
-    pub fn get_depth(self, pair: &str) -> Result<DepthResponse> {
+    pub fn get_depth(self, pair: &str) -> Result<DepthInfo> {
         let path = format!("{}/{}/depth", self.end_point, pair);
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
         //println!("{:?}", json);
@@ -102,8 +149,23 @@ impl PublicApi {
         Ok(json["data"].to_owned().into())
     }
 
+    pub fn get_transactions(self, pair: &str, yyyymmdd: Option<&str>) -> Result<Transactions> {
+        let mut path = format!("{}/{}/transactions", self.end_point, pair);
+        if yyyymmdd.is_some() {
+            path = path + "/" + yyyymmdd.unwrap();
+        }
+
+        let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
+        println!("{:?}", json);
+
+        if json["success"].as_i64().unwrap() != 1 {
+            return Err(anyhow!("api error {}", json["data"]["code"]));
+        }
+
+        Ok(json["data"].to_owned().into())
+    }
+
     //pub fn get_tickers(self, ) ->
     //pub fn get_tickers_jpy(self, ) ->
-    //pub fn get_transactions(self, ) ->
     //pub fn get_candlestick(self, ) ->
 }

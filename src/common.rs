@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum OrderSide {
     Buy,
     Sell,
@@ -13,6 +14,7 @@ impl std::fmt::Display for OrderSide {
     }
 }
 
+#[derive(Debug)]
 pub enum OrderType {
     Limit,
     Market,
