@@ -20,13 +20,13 @@ struct PrivateApi {
 }
 
 impl PrivateApi {
-    pub fn new(end_point: String, api_key: String, api_secret: String) -> Self {
+    pub fn new(end_point: &str, api_key: String, api_secret: String) -> Self {
         let agent: ureq::Agent = ureq::AgentBuilder::new()
             .timeout_read(Duration::from_secs(5))
             .timeout_write(Duration::from_secs(5))
             .build();
         Self {
-            end_point,
+            end_point: end_point.to_string(),
             agent,
             api_key,
             api_secret,

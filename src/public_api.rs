@@ -192,12 +192,15 @@ pub struct PublicApi {
 }
 
 impl PublicApi {
-    pub fn new(end_point: String) -> Self {
+    pub fn new(end_point: &str) -> Self {
         let agent: ureq::Agent = ureq::AgentBuilder::new()
             .timeout_read(Duration::from_secs(5))
             .timeout_write(Duration::from_secs(5))
             .build();
-        Self { end_point, agent }
+        Self {
+            end_point: end_point.to_string(),
+            agent,
+        }
     }
 
     pub fn get_ticker(self, pair: &str) -> Result<TickerInfo> {
@@ -289,12 +292,11 @@ impl PublicApi {
             "{}/{}/candlestick/{}/{}",
             self.end_point, pair, candle_type, yyyy
         );
-        println!("{}", path);
+        //println!("{}", path);
 
-        //let json = self.agent.get(&path).call()?.into_json()?;
         let json: ureq::serde_json::Value =
             self.agent.get(&path).call().unwrap().into_json().unwrap();
-        println!("{:?}", json);
+        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));
