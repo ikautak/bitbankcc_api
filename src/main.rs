@@ -28,16 +28,19 @@ fn main() {
     //let ticker = pub_api.get_ticker("btc_jpy").unwrap();
     //println!("{:?}", ticker);
 
+    let tickers = pub_api.get_tickers().unwrap();
+    println!("{:?}", tickers);
+
     //let depth = pub_api.get_depth("btc_jpy").unwrap();
     //println!("{:?}", depth);
 
     //let transactions = pub_api.get_transactions("btc_jpy", None).unwrap();
     //println!("{:?}", transactions);
 
-    let candle_stick = pub_api
-        .get_candlestick("btc_jpy", CandleType::_5min, "20230408")
-        .unwrap();
-    println!("{:?}", candle_stick);
+    //let candle_stick = pub_api
+    //    .get_candlestick("btc_jpy", CandleType::_5min, "20230408")
+    //    .unwrap();
+    //println!("{:?}", candle_stick);
 
     //let pri_api = PrivateApi::new(pri_end_point.to_string(), api_key, api_secret);
     //pri_api.order_type_market("btc_jpy", 0.0001, OrderSide::Buy);

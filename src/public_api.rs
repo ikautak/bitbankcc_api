@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use std::collections::HashMap;
 use std::time::Duration;
 use ureq;
 
@@ -18,9 +19,19 @@ pub struct TickerInfo {
 
 impl Into<TickerInfo> for ureq::serde_json::Value {
     fn into(self) -> TickerInfo {
+        // "sell" and "buy" may be Null, return NaN.
+        let sell = match self["sell"].as_str() {
+            Some(x) => x.parse::<f64>().unwrap(),
+            None => std::f64::NAN,
+        };
+        let buy = match self["buy"].as_str() {
+            Some(x) => x.parse::<f64>().unwrap(),
+            None => std::f64::NAN,
+        };
+
         TickerInfo {
-            sell: (self["sell"].as_str().unwrap().parse::<f64>().unwrap()),
-            buy: (self["buy"].as_str().unwrap().parse::<f64>().unwrap()),
+            sell,
+            buy,
             high: (self["high"].as_str().unwrap().parse::<f64>().unwrap()),
             low: (self["low"].as_str().unwrap().parse::<f64>().unwrap()),
             open: (self["open"].as_str().unwrap().parse::<f64>().unwrap()),
@@ -28,6 +39,28 @@ impl Into<TickerInfo> for ureq::serde_json::Value {
             vol: (self["vol"].as_str().unwrap().parse::<f64>().unwrap()),
             timestamp: (self["timestamp"].as_u64().unwrap()),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Tickers {
+    data: HashMap<String, TickerInfo>,
+}
+
+impl Into<Tickers> for ureq::serde_json::Value {
+    fn into(self) -> Tickers {
+        let ticker_array = self.as_array().unwrap();
+        let mut ticker_map = HashMap::new();
+
+        for e in ticker_array {
+            println!("{}", e["pair"]);
+        }
+
+        for e in ticker_array {
+            ticker_map.insert(e["pair"].as_str().unwrap().to_string(), e.to_owned().into());
+        }
+
+        Tickers { data: ticker_map }
     }
 }
 
@@ -183,7 +216,18 @@ impl PublicApi {
         Ok(json["data"].to_owned().into())
     }
 
-    //pub fn get_tickers(self, ) ->
+    pub fn get_tickers(self) -> Result<Tickers> {
+        let path = format!("{}/tickers", self.end_point);
+        let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
+        println!("{:?}", json);
+
+        if json["success"].as_i64().unwrap() != 1 {
+            return Err(anyhow!("api error {}", json["data"]["code"]));
+        }
+
+        Ok(json["data"].to_owned().into())
+    }
+
     //pub fn get_tickers_jpy(self, ) ->
 
     pub fn get_depth(self, pair: &str) -> Result<DepthInfo> {
