@@ -53,10 +53,6 @@ impl Into<Tickers> for ureq::serde_json::Value {
         let mut ticker_map = HashMap::new();
 
         for e in ticker_array {
-            println!("{}", e["pair"]);
-        }
-
-        for e in ticker_array {
             ticker_map.insert(e["pair"].as_str().unwrap().to_string(), e.to_owned().into());
         }
 
@@ -219,7 +215,19 @@ impl PublicApi {
     pub fn get_tickers(self) -> Result<Tickers> {
         let path = format!("{}/tickers", self.end_point);
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
-        println!("{:?}", json);
+        //println!("{:?}", json);
+
+        if json["success"].as_i64().unwrap() != 1 {
+            return Err(anyhow!("api error {}", json["data"]["code"]));
+        }
+
+        Ok(json["data"].to_owned().into())
+    }
+
+    pub fn get_tickers_jpy(self) -> Result<Tickers> {
+        let path = format!("{}/tickers_jpy", self.end_point);
+        let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
+        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));

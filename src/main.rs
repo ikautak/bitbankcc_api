@@ -28,7 +28,10 @@ fn main() {
     //let ticker = pub_api.get_ticker("btc_jpy").unwrap();
     //println!("{:?}", ticker);
 
-    let tickers = pub_api.get_tickers().unwrap();
+    //let tickers = pub_api.get_tickers().unwrap();
+    //println!("{:?}", tickers);
+
+    let tickers = pub_api.get_tickers_jpy().unwrap();
     println!("{:?}", tickers);
 
     //let depth = pub_api.get_depth("btc_jpy").unwrap();
