@@ -11,6 +11,21 @@ fn sign(secret: &str, data: &str) -> hmac::Tag {
     tag
 }
 
+fn gen_nonce() -> String {
+    let nonce = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_millis()
+        * 1000;
+    nonce.to_string()
+}
+
+fn u8_to_string(input: &[u8]) -> String {
+    let s = input.iter().map(|byte| format!("{:02x}", byte)).collect();
+    //println!("{:?}", s);
+    s
+}
+
 #[derive(Debug)]
 struct PrivateApi {
     end_point: String,
@@ -38,30 +53,19 @@ impl PrivateApi {
         path: &str,
         query: ureq::serde_json::Value,
     ) -> Result<ureq::serde_json::Value, std::io::Error> {
-        let nonce = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis()
-            * 1000;
+        let nonce = gen_nonce();
+        let message = nonce.to_owned() + &query.to_string();
 
-        let mut message = nonce.to_string();
-        message += &query.to_string();
-
-        let s = sign(&self.api_secret, &message);
-        let s: String = s
-            .as_ref()
-            .iter()
-            .map(|byte| format!("{:02x}", byte))
-            .collect();
-        //println!("{:?}", s);
+        let sig = sign(&self.api_secret, &message);
+        let sig = u8_to_string(sig.as_ref());
 
         let req = self
             .agent
             .post(path)
             .set("Content-Type", "application/json")
             .set("ACCESS-KEY", &self.api_key)
-            .set("ACCESS-NONCE", &nonce.to_string())
-            .set("ACCESS-SIGNATURE", &s);
+            .set("ACCESS-NONCE", &nonce)
+            .set("ACCESS-SIGNATURE", &sig);
         println!("{:?}", req);
 
         let response = req.send_json(query).unwrap();
@@ -84,5 +88,20 @@ impl PrivateApi {
 
         let res = self.post_query(&path, params).unwrap();
         println!("{:?}", res);
+    }
+}
+
+mod tests {
+    use super::u8_to_string;
+
+    #[test]
+    fn test_u8_to_string() {
+        let x = vec![0x10, 0x20, 0x30, 0x40];
+        let result = u8_to_string(x.as_ref());
+        assert_eq!(result, "10203040");
+
+        let x = vec![0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa];
+        let result = u8_to_string(x.as_ref());
+        assert_eq!(result, "ffeeddccbbaa");
     }
 }
