@@ -7,7 +7,7 @@ use ureq;
 fn sign(secret: &str, data: &str) -> hmac::Tag {
     let key = hmac::Key::new(hmac::HMAC_SHA256, secret.as_bytes());
     let tag = hmac::sign(&key, data.as_bytes());
-    //println!("{:?}", tag);
+    //dbg!(&tag);
     tag
 }
 
@@ -22,12 +22,12 @@ fn gen_nonce() -> String {
 
 fn u8_to_string(input: &[u8]) -> String {
     let s = input.iter().map(|byte| format!("{:02x}", byte)).collect();
-    //println!("{:?}", s);
+    //dbg!(&s);
     s
 }
 
 #[derive(Debug)]
-struct PrivateApi {
+pub struct PrivateApi {
     end_point: String,
     agent: ureq::Agent,
     api_key: String,
@@ -54,7 +54,7 @@ impl PrivateApi {
         query: ureq::serde_json::Value,
     ) -> Result<ureq::serde_json::Value, std::io::Error> {
         let nonce = gen_nonce();
-        let message = nonce.to_owned() + &query.to_string();
+        let message = format!("{}{}", nonce, query);
 
         let sig = sign(&self.api_secret, &message);
         let sig = u8_to_string(sig.as_ref());
@@ -66,10 +66,10 @@ impl PrivateApi {
             .set("ACCESS-KEY", &self.api_key)
             .set("ACCESS-NONCE", &nonce)
             .set("ACCESS-SIGNATURE", &sig);
-        println!("{:?}", req);
+        //dbg!(&req);
 
         let response = req.send_json(query).unwrap();
-        println!("{:?}", response);
+        //dbg!(&response);
         response.into_json()
     }
 
@@ -84,7 +84,6 @@ impl PrivateApi {
             //"post_only": "0",
             //"trigger_price": "0",
         });
-        //println!("params {:?}", params);
 
         let res = self.post_query(&path, params).unwrap();
         println!("{:?}", res);

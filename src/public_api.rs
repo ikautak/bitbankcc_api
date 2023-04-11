@@ -206,7 +206,6 @@ impl PublicApi {
     pub fn get_ticker(self, pair: &str) -> Result<TickerInfo> {
         let path = format!("{}/{}/ticker", self.end_point, pair);
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
-        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));
@@ -218,7 +217,6 @@ impl PublicApi {
     pub fn get_tickers(self) -> Result<Tickers> {
         let path = format!("{}/tickers", self.end_point);
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
-        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));
@@ -230,7 +228,6 @@ impl PublicApi {
     pub fn get_tickers_jpy(self) -> Result<Tickers> {
         let path = format!("{}/tickers_jpy", self.end_point);
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
-        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));
@@ -239,12 +236,9 @@ impl PublicApi {
         Ok(json["data"].to_owned().into())
     }
 
-    //pub fn get_tickers_jpy(self, ) ->
-
     pub fn get_depth(self, pair: &str) -> Result<DepthInfo> {
         let path = format!("{}/{}/depth", self.end_point, pair);
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
-        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));
@@ -260,7 +254,6 @@ impl PublicApi {
         }
 
         let json: ureq::serde_json::Value = self.agent.get(&path).call()?.into_json()?;
-        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));
@@ -292,11 +285,9 @@ impl PublicApi {
             "{}/{}/candlestick/{}/{}",
             self.end_point, pair, candle_type, yyyy
         );
-        //println!("{}", path);
 
         let json: ureq::serde_json::Value =
             self.agent.get(&path).call().unwrap().into_json().unwrap();
-        //println!("{:?}", json);
 
         if json["success"].as_i64().unwrap() != 1 {
             return Err(anyhow!("api error {}", json["data"]["code"]));
