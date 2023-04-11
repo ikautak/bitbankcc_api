@@ -1,4 +1,4 @@
-use rust_bb::public_api::PublicApi;
+use bitbankcc_api::PublicApi;
 
 fn main() {
     let pub_end_point = "https://public.bitbank.cc";

@@ -1,5 +1,4 @@
-use rust_bb::common::CandleType;
-use rust_bb::public_api::PublicApi;
+use bitbankcc_api::{CandleType, PublicApi};
 
 fn main() {
     let pub_end_point = "https://public.bitbank.cc";
